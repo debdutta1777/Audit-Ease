@@ -76,7 +76,7 @@ Cite specific sections if possible.
 `;
 
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+                `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -101,17 +101,47 @@ Cite specific sections if possible.
             setMessages(prev => [...prev, assistantMessage]);
 
         } catch (error) {
-            console.error(error);
-            toast.error('Failed to get answer from AI');
-            setMessages(prev => [...prev, {
-                id: Date.now().toString(),
+            console.error('Gemini API Error:', error);
+
+            // Provide a more helpful fallback response
+            const fallbackResponse = generateFallbackResponse(input, documentName);
+
+            const assistantMessage: Message = {
+                id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: "I'm sorry, I encountered an error while analyzing the document. Please try again.",
+                content: fallbackResponse,
                 timestamp: new Date()
-            }]);
+            };
+
+            setMessages(prev => [...prev, assistantMessage]);
+
+            // Show a subtle warning about API issues
+            toast.warning('Using offline mode - Get a Gemini API key for full AI features', {
+                description: 'Visit https://makersuite.google.com/app/apikey'
+            });
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Fallback response generator when API is unavailable
+    const generateFallbackResponse = (question: string, docName: string): string => {
+        const lowerQ = question.toLowerCase();
+
+        if (lowerQ.includes('liability') || lowerQ.includes('liable')) {
+            return `**Liability Analysis for ${docName}:**\n\nI would normally analyze the liability clauses in your document using AI, but the Gemini API is currently unavailable.\n\n**Common liability sections to review:**\n- Limitation of liability clauses\n- Indemnification provisions\n- Insurance requirements\n- Warranty disclaimers\n\n💡 **To enable full AI analysis**, add a valid Gemini API key to your .env file.`;
+        }
+
+        if (lowerQ.includes('termination') || lowerQ.includes('cancel')) {
+            return `**Termination Analysis for ${docName}:**\n\nI would analyze termination clauses with AI, but the API is currently unavailable.\n\n**Key termination aspects to check:**\n- Notice period requirements\n- Termination for cause vs. convenience\n- Post-termination obligations\n- Survival clauses\n\n💡 **Get your Gemini API key** at: https://makersuite.google.com/app/apikey`;
+        }
+
+        if (lowerQ.includes('privacy') || lowerQ.includes('data') || lowerQ.includes('gdpr')) {
+            return `**Privacy & Data Analysis for ${docName}:**\n\nFull AI analysis requires a valid Gemini API key.\n\n**Important privacy elements:**\n- Data processing provisions\n- GDPR/CCPA compliance clauses\n- Data security requirements\n- Data retention policies\n\n💡 **Enable AI features** by configuring your Gemini API key.`;
+        }
+
+        // Generic fallback
+        return `**Analysis for "${question}":**\n\n⚠️ **AI Chat is currently unavailable** because the Gemini API key is not configured or has expired.\n\n**To enable full AI-powered contract analysis:**\n1. Visit https://makersuite.google.com/app/apikey\n2. Create a new API key\n3. Add it to your **.env** file as **VITE_GEMINI_API_KEY**\n4. Restart the development server\n\nIn the meantime, you can:\n- Review the full audit report\n- Check specific compliance standards\n- Export the document analysis\n\n*This is a fallback message. Once the API is configured, I'll provide intelligent, context-aware answers about your contract.*`;
     };
 
     return (

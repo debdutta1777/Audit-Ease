@@ -17,19 +17,19 @@
   :root {
     /* Premium AuditEase Theme - Light Mode */
     /* Primary brand - Deep navy with trust signals */
-    --background: 210 40% 98%;
+    --background: 0 0% 100%;
     --foreground: 222 47% 11%;
 
     /* Cards and elevated surfaces */
-    --card: 0 0% 100%;
+    --card: 210 20% 98%;
     --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Primary - Vibrant Blue-Cyan Gradient in usage, but solid fallback here */
-    --primary: 200 98% 39%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Vibrant Blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
     /* Secondary - Slate tones */
     --secondary: 210 40% 96.1%;
@@ -39,18 +39,17 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    /* Accent - Teal/Cyan highlights */
-    --accent: 199 89% 48%;
-    /* Bright Cyan/Blue */
-    --accent-foreground: 210 40% 98%;
+    /* Accent - Bright Cyan */
+    --accent: 189 94% 43%;
+    /* Vibrant Cyan */
+    --accent-foreground: 0 0% 100%;
 
     /* Status colors */
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --success: 142 76% 36%;
-    --success-foreground: 356 29% 3%;
-    /* Dark text for contrast */
+    --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;

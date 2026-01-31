@@ -153,7 +153,7 @@ const Index = () => {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col gap-4 animate-slide-up sm:flex-row" style={{ animationDelay: "0.2s" }}>
+          <div className="flex flex-col gap-4 animate-slide-up items-center justify-center sm:flex-row" style={{ animationDelay: "0.2s" }}>
             <Button
               asChild
               size="lg"
@@ -163,14 +163,6 @@ const Index = () => {
                 Start Free Trial
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="group gap-2 border-slate-600 bg-slate-800/50 px-8 py-6 text-lg font-semibold text-white backdrop-blur-sm hover:bg-slate-800 hover:text-white"
-            >
-              <Play className="h-5 w-5" />
-              Watch Demo
             </Button>
           </div>
 

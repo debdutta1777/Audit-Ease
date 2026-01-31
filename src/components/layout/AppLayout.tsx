@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { CustomerSupportWidget } from '@/components/support/CustomerSupportWidget';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -105,15 +106,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <p className="text-sm font-medium truncate">{user?.email}</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between gap-2">
               <ThemeToggle />
               <Button
                 variant="ghost"
-                size="icon"
-                className="flex-1 justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                className="flex-1 justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent px-3"
                 onClick={handleSignOut}
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-4 w-4" />
+                <span className="text-sm font-medium">Sign out</span>
               </Button>
             </div>
           </div>
@@ -134,6 +135,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </div>
       </main>
+
+      {/* Customer Support Widget */}
+      <CustomerSupportWidget />
     </div>
   );
 }

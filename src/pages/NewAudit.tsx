@@ -138,49 +138,47 @@ export default function NewAudit() {
       const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
       if (!geminiApiKey) throw new Error('Gemini API key not configured');
 
-      const prompt = `You are a legal compliance expert. Your task is to analyze a contract/document against a specific regulation/standard and identify compliance gaps.
-[REGULATION/STANDARD START]
-${standardText.substring(0, 15000)}
-[REGULATION/STANDARD END]
+      // Limit text to ensure response doesn't get truncated
+      const maxStandardChars = 8000;
+      const maxContractChars = 8000;
 
-[CONTRACT/DOCUMENT START]
-${subjectText.substring(0, 15000)}
-[CONTRACT/DOCUMENT END]
+      const prompt = `Analyze this contract for compliance gaps against the regulation. Respond with JSON only.
 
-INSTRUCTIONS:
-1. Compare the contract text against the regulation requirements.
-2. Identify specific clauses that violate or fail to meet the regulation.
-3. Return the result in STRICT JSON format.
+REGULATION:
+${standardText.substring(0, maxStandardChars)}${standardText.length > maxStandardChars ? '...(truncated)' : ''}
 
-JSON STRUCTURE:
+CONTRACT:
+${subjectText.substring(0, maxContractChars)}${subjectText.length > maxContractChars ? '...(truncated)' : ''}
+
+Return JSON with this exact structure (identify TOP 5 CRITICAL gaps maximum):
 {
-  "health_score": <number 0-100>,
+  "health_score": <0-100>,
   "total_liability_usd": <number>,
   "gaps": [
     {
-      "risk_level": "<critical|high|medium|low>",
-      "category": "<string>",
-      "original_clause": "<string>",
-      "regulation_reference": "<string>",
-      "explanation": "<string>",
+      "risk_level": "critical|high|medium|low",
+      "category": "string",
+      "original_clause": "string or Missing",
+      "regulation_reference": "string",
+      "explanation": "concise explanation",
       "liability_usd": <number>,
-      "compliant_rewrite": "<string>"
+      "compliant_rewrite": "brief suggested fix"
     }
   ]
 }
 
-If the document text appears to be empty or garbled, please indicate this in the JSON with a low score and a gap explaining that the document content could not be read.`;
+Respond with ONLY the JSON. Keep explanations concise (max 2 sentences each). Limit to 5 most critical gaps.`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 4096,
+              temperature: 0.1,
+              maxOutputTokens: 8192
             }
           })
         }
@@ -195,14 +193,119 @@ If the document text appears to be empty or garbled, please indicate this in the
 
       let analysisData;
       try {
-        const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          analysisData = JSON.parse(jsonMatch[0]);
+        // 1. Basic cleanup
+        let cleanedContent = aiContent.trim();
+        cleanedContent = cleanedContent.replace(/^```(?:json)?\s*/gm, '').replace(/```\s*$/gm, '');
+
+        // 2. Extract JSON part
+        const start = cleanedContent.indexOf('{');
+        const end = cleanedContent.lastIndexOf('}');
+
+        let jsonStr = '';
+        if (start !== -1) {
+          // If we have a closing brace, try taking the whole block first
+          if (end !== -1 && end > start) {
+            jsonStr = cleanedContent.substring(start, end + 1);
+            try {
+              analysisData = JSON.parse(jsonStr);
+            } catch (e) {
+              // Start/End pair exists but parse failed, might be valid JSON but truncated/garbled inside?
+              // Or maybe there are multiple JSONs and we took too much or too little.
+              // Fall back to repair strategy.
+              jsonStr = cleanedContent.substring(start);
+            }
+          } else {
+            // No closing brace, definitely truncated
+            jsonStr = cleanedContent.substring(start);
+          }
         } else {
-          throw new Error('Invalid AI response format');
+          throw new Error('No JSON start found');
         }
+
+        // 3. Robust Repair Strategy if not yet parsed
+        if (!analysisData) {
+          console.log('Attempting robust JSON repair...');
+
+          // Heuristic A: It's likely an unclosed array in "gaps"
+          // Start from the end and work backwards finding the last valid closing of an object "},"
+          // This is the safest way to save the valid parts of a list.
+
+          let repaired = false;
+          let attemptStr = jsonStr;
+
+          // Try iteratively removing chars from end until we find a place we can close it
+          // Limit attempts to avoid infinite loops, though practically we usually just need to find the last '},'
+
+          // 3.1. Try to find the last complete object in the gaps array
+          const lastObjEnd = attemptStr.lastIndexOf('},');
+          if (lastObjEnd !== -1) {
+            // Keep everything up to the comma: ... },
+            // Remove the string after it, close array and object.
+            // We assume structure is { ..., "gaps": [ { ... }, { ... }, <truncated>
+            const potentialJson = attemptStr.substring(0, lastObjEnd + 1) + ']}';
+            try {
+              analysisData = JSON.parse(potentialJson);
+              repaired = true;
+            } catch (e) {
+              // Failed key structure? try just }
+              try {
+                analysisData = JSON.parse(attemptStr.substring(0, lastObjEnd + 1) + '}');
+                repaired = true;
+              } catch (e2) { }
+            }
+          }
+
+          if (!repaired) {
+            // 3.2. Last ditch: Aggressive brute force closure
+            // Just count brackets and force close them
+            const openBrackets = (attemptStr.match(/\[/g) || []).length;
+            const closeBrackets = (attemptStr.match(/\]/g) || []).length;
+            const openBraces = (attemptStr.match(/\{/g) || []).length;
+            const closeBraces = (attemptStr.match(/\}/g) || []).length;
+
+            let closer = '';
+            for (let i = 0; i < (openBrackets - closeBrackets); i++) closer += ']';
+            for (let i = 0; i < (openBraces - closeBraces); i++) closer += '}';
+
+            try {
+              analysisData = JSON.parse(attemptStr + closer);
+            } catch (e) {
+              // 4. Ultimate Fallback: Return a valid dummy object so the UI doesn't crash
+              // and put the raw AI text in the explanation
+              console.error('JSON repair failed, using fallback.');
+              analysisData = {
+                health_score: 50,
+                total_liability_usd: 0,
+                gaps: [{
+                  risk_level: "high",
+                  category: "AI Response Error",
+                  original_clause: "Analysis Interrupted",
+                  regulation_reference: "N/A",
+                  explanation: "The AI analysis was truncated. Here is the raw output received: " + aiContent.substring(0, 500) + "...",
+                  liability_usd: 0,
+                  compliant_rewrite: "Please retry the analysis."
+                }]
+              };
+            }
+          }
+        }
+
       } catch (parseError) {
-        throw new Error('Failed to parse AI response');
+        console.error('Fatal Parse Error:', parseError);
+        // Only throw if even the fallback failed (which shouldn't happen)
+        analysisData = {
+          health_score: 50,
+          total_liability_usd: 0,
+          gaps: [{
+            risk_level: "medium",
+            category: "System Error",
+            original_clause: "N/A",
+            regulation_reference: "System",
+            explanation: "Failed to parse AI response. Please try again.",
+            liability_usd: 0,
+            compliant_rewrite: "N/A"
+          }]
+        };
       }
 
       if (analysisData.gaps?.length > 0) {
