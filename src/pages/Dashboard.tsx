@@ -161,8 +161,8 @@ export default function Dashboard() {
             {/* Risk Distribution Card */}
             <div className="glass-card relative overflow-hidden rounded-3xl p-6 lg:col-span-1 border-border/50 bg-gradient-to-b from-card/80 to-card/40">
               <div className="mb-4 flex items-center gap-2">
-                <div className="rounded-lg bg-accent/10 p-2">
-                  <Shield className="h-5 w-5 text-accent-foreground" />
+                <div className="rounded-lg bg-orange-500/10 p-2">
+                  <Shield className="h-5 w-5 text-orange-500" />
                 </div>
                 <h3 className="font-semibold text-foreground">Risk Categories</h3>
               </div>

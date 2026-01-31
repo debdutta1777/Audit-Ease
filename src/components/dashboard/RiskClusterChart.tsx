@@ -3,7 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 interface RiskCategory {
   name: string;
   value: number;
-  color: string;
+  color?: string; // Made optional to support auto-coloring
 }
 
 interface RiskClusterChartProps {
@@ -11,21 +11,19 @@ interface RiskClusterChartProps {
   className?: string;
 }
 
-const COLORS = {
-  'Data Privacy': 'hsl(217, 91%, 50%)',
-  'Liability Limits': 'hsl(0, 84%, 60%)',
-  'Termination Clauses': 'hsl(25, 95%, 53%)',
-  'Indemnification': 'hsl(38, 92%, 50%)',
-  'Intellectual Property': 'hsl(174, 62%, 47%)',
-  'Confidentiality': 'hsl(280, 65%, 60%)',
-  'Payment Terms': 'hsl(142, 76%, 36%)',
-  'Other': 'hsl(220, 10%, 50%)',
-};
+const COLORS = [
+  'hsl(217, 91%, 60%)', // Blue
+  'hsl(270, 95%, 60%)', // Purple
+  'hsl(330, 85%, 60%)', // Pink
+  'hsl(15, 90%, 60%)',  // Orange
+  'hsl(160, 84%, 45%)', // Green
+  'hsl(190, 90%, 50%)', // Cyan
+];
 
 export function RiskClusterChart({ data, className }: RiskClusterChartProps) {
-  const chartData = data.map(item => ({
+  const chartData = data.map((item, index) => ({
     ...item,
-    color: COLORS[item.name as keyof typeof COLORS] || COLORS.Other
+    color: item.color || COLORS[index % COLORS.length]
   }));
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -46,8 +44,8 @@ export function RiskClusterChart({ data, className }: RiskClusterChartProps) {
       <div className="flex flex-wrap gap-3 justify-center mt-4">
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full" 
+            <div
+              className="w-3 h-3 rounded-full"
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-xs text-muted-foreground">{entry.value}</span>

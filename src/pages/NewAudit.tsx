@@ -184,7 +184,12 @@ Respond with ONLY the JSON. Keep explanations concise (max 2 sentences each). Li
         }
       );
 
-      if (!response.ok) throw new Error('AI analysis failed. Please try again.');
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('API Key Error: Domain not allowed. Please check your Google AI Studio key restrictions.');
+        }
+        throw new Error(`AI analysis failed (Status ${response.status}). Please try again.`);
+      }
 
       const result = await response.json();
       const aiContent = result.candidates?.[0]?.content?.parts?.[0]?.text;

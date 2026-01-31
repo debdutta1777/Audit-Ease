@@ -97,7 +97,12 @@ Your Response:`;
                 }
             );
 
-            if (!response.ok) throw new Error('API request failed');
+            if (!response.ok) {
+                if (response.status === 403) {
+                    throw new Error('API Key Error: Domain not allowed. Please check your Google AI Studio key restrictions.');
+                }
+                throw new Error('API request failed');
+            }
 
             const result = await response.json();
             const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having trouble connecting to support right now. Please email support@auditease.ai";
