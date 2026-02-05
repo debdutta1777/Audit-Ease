@@ -45,6 +45,5 @@ npm run dev
 - React Query
 
 ## License
-
  
 MIT 
